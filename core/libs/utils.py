@@ -170,7 +170,7 @@ class FileLogger:
 
 class ConfigDict(dict):
     def __init__(self, config_path=None, data_config_path=None, gpus=1, cli_args=[]):
-        if type(config_path) == str:
+        if isinstance(config_path, str):
             # build new config
             config_dict = read_config(config_path)
             if data_config_path is not None:
@@ -183,7 +183,7 @@ class ConfigDict(dict):
             time_string = timeInTokyo.strftime("%b%d_%H%M_") + "".join(random.sample("zyxwvutsrqponmlkjihgfedcba", 5))
             config_dict["EXP_STR"] = experiment_string
             config_dict["TIME_STR"] = time_string
-        elif type(config_path) == dict:
+        elif isinstance(config_path, dict):
             config_dict = config_path
         else:
             raise ValueError("config_path must be a string or a dict")

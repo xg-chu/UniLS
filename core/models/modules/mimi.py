@@ -6,7 +6,7 @@ from transformers import MimiModel
 
 
 class MimiModelWrapper(nn.Module):
-    def __init__(self, model_name="kyutai/mimi", feature_type="acoustic", default_sample_rate=24000):
+    def __init__(self, model_name="kyutai/mimi", feature_type="both", default_sample_rate=24000):
         super().__init__()
         self.latent_dim = 256 if "half" in feature_type else 512
         self.feature_type = feature_type

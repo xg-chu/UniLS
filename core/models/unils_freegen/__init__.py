@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 # Copyright (c) Xuangeng Chu (xg.chu@outlook.com)
 
-from .models import UniFreeGen
+from .models import UniLSFreeGen

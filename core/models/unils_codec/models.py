@@ -17,7 +17,7 @@ from .bsq_quantizer import MultiScaleBSQ
 from .transformer import TransformerDecoder, TransformerEncoder
 
 
-class UniCodec(nn.Module):
+class UniLSCodec(nn.Module):
     def __init__(self, model_cfg, init_submodule=None, **kwargs):
         super().__init__()
         self.code_dim = model_cfg.V_CODE_DIM
@@ -53,7 +53,8 @@ class UniCodec(nn.Module):
 
     def forward(self, batch, training=True):
         gt_motion_code = batch["motion_code"]
-        gt_motion_code = rearrange(gt_motion_code, "b mb l c -> (b mb) l c")
+        if gt_motion_code.dim() == 4:
+            gt_motion_code = rearrange(gt_motion_code, "b mb l c -> (b mb) l c")
         # encode
         enc_in = self.norm_with_stats(gt_motion_code)
         enc_out = self.encoder(enc_in)
@@ -70,7 +71,8 @@ class UniCodec(nn.Module):
 
     @torch.inference_mode()
     def inference(self, motion_code, **kwargs):
-        motion_code = rearrange(motion_code, "b mb l c -> (b mb) l c")
+        if motion_code.dim() == 4:
+            motion_code = rearrange(motion_code, "b mb l c -> (b mb) l c")
         batch_size, code_len, code_dim = motion_code.shape
         # motion batchs
         pad_len = math.ceil(code_len / self.patch_nums[-1]) * self.patch_nums[-1]

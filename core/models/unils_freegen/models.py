@@ -10,20 +10,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
-from core.models.modules import MimiModelWrapper, Wav2Vec2Model
-from core.models.uni_codec import UniCodec
+from core.models.unils_codec import UniLSCodec
 
 from .transformer import MixedARTalkDecoder
 
 
-class UniFreeGen(nn.Module):
+class UniLSFreeGen(nn.Module):
     def __init__(self, model_cfg=None, init_submodule=True, **kwargs):
         super().__init__()
         self._motion_fps = 25
         self._sample_rate = 16000
 
         # build basic vae
-        base_codec = UniCodec(model_cfg.VAE_CONFIG, init_submodule=False)
+        base_codec = UniLSCodec(model_cfg.VAE_CONFIG, init_submodule=False)
         if init_submodule:
             vae_ckpt = torch.load(model_cfg.VAE_CONFIG.VAE_PATH, map_location="cpu", weights_only=True)
             print("Loading vae from {}...".format(model_cfg.VAE_CONFIG.VAE_PATH))

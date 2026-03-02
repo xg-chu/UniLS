@@ -11,19 +11,19 @@ import torch.nn.functional as F
 from einops import rearrange
 
 from core.models.modules import MimiModelWrapper, Wav2Vec2Model
-from core.models.uni_codec import UniCodec
+from core.models.unils_codec import UniLSCodec
 
 from .transformer import MixedARTalkDecoder
 
 
-class UniBiTalk(nn.Module):
+class UniLSGen(nn.Module):
     def __init__(self, model_cfg=None, init_submodule=True, **kwargs):
         super().__init__()
         self._motion_fps = 25
         self._sample_rate = 16000
 
         # build basic vae
-        base_codec = UniCodec(model_cfg.VAE_CONFIG, init_submodule=False)
+        base_codec = UniLSCodec(model_cfg.VAE_CONFIG, init_submodule=False)
         if init_submodule:
             vae_ckpt = torch.load(model_cfg.VAE_CONFIG.VAE_PATH, map_location="cpu", weights_only=True)
             print("Loading vae from {}...".format(model_cfg.VAE_CONFIG.VAE_PATH))
@@ -38,7 +38,7 @@ class UniBiTalk(nn.Module):
             audio_encoder = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-xls-r-300m")
         elif model_cfg.AUDIO_ENCODER == "mimi":
             audio_dim = 512
-            audio_encoder = MimiModelWrapper("kyutai/mimi", feature_type=model_cfg.AUDIO_FEATURE)
+            audio_encoder = MimiModelWrapper("kyutai/mimi", default_sample_rate=self._sample_rate)
         else:
             raise ValueError(f"Invalid audio encoder: {model_cfg.AUDIO_ENCODER}")
         audio_encoder.eval()
@@ -156,7 +156,7 @@ class UniBiTalk(nn.Module):
         assert batch_size == 1, "Only support batch size 1 for inference."
         assert style_motion_code is not None, "Motion style is required for inference."
         style_motion_code = style_motion_code.unbind(dim=1)[0]
-        print("Inference with tau {} and cfg {}".format(tau, cfg))
+        # print("Inference with tau {} and cfg {}".format(tau, cfg))
         # prepare audio and other inputs
         patch_len = max(self.patch_nums)
         audio_frame_len = self._sample_rate / self._motion_fps

@@ -1,0 +1,62 @@
+PIPELINE: 'vae_trainer.VAETrainer'
+WANDB_ENTITY: 'xchu_ut'
+WANDB_PROJECT: 'UniLS_Codec'
+DUMP_DIR: '/checkpoint/avatar/xchu/UniLS'
+
+
+DATASET:
+  NAME: 'TalkMotionOnly'
+  LOADER: 'motion_data.TalkMotionOnlyData'
+  CLIP_LENGTH: 100
+  PREV_LENGTH: 100
+  STYLE_LENGTH: 100
+  MOTION_FPS: 25
+  AUDIO_SAMPLE_RATE: 16000
+  DATA_PATH: '/root/workspace/dataset/UniLSTalkDataset/TalkMotionOnly/data_lmdb'
+  META_PATH: '/root/workspace/dataset/UniLSTalkDataset/TalkMotionOnly/talk_motion.json'
+
+
+MODEL:
+  NAME: 'UniLSFreeGen'
+  LOADER: 'unils_freegen.UniLSFreeGen'
+  T_DEPTH: 6
+  T_NUM_HEAD: 6
+  T_EMBED_DIM: 384
+
+  FLIP_QUANT: 0.3
+  PREV_FREE: 0.1
+  STYLE_FREE: 0.1
+
+  VAE_CONFIG:
+    LOADER: 'unils_codec.UniLSCodec'
+    MOTION_DIM: 108 # 100 + 3 + 1 + 2 + 2
+    V_CODE_DIM: 32
+    V_PATCH_NUMS: [1, 25, 50, 100]
+    T_DEPTH: 6
+    T_NUM_HEADS: 6
+    T_HIDDEN_DIM: 384
+    STATS_PATH: '/root/workspace/dataset/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
+    VAE_PATH: '/checkpoint/avatar/xchu/UniLS/UniLSCodec_TalkMotionOnly/Feb28_1943_hmyqw/checkpoints/iter_150000.pt'
+    
+
+TRAINER:
+  # TRAIN LOOP
+  BATCH_SIZE: 128
+  TRAIN_ITER: 200000
+  CHECK_INTERVAL: 50000
+
+  # OPTIMIZER
+  NAME: 'Adam'
+  WARMUP_ITER: 1000
+  LR_DECAY_RATE: 0.1
+  LR_DECAY_ITER: 200000
+  LEARNING_RATE: 1.0e-4
+
+  # EMA
+  USING_EMA: True
+  EMA_DECAY: 0.9999
+  EMA_UPDATE_FREQ: 1
+
+
+LOSS_KWARGS:
+  CE_WEIGHT: 1.0
