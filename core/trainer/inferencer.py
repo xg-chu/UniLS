@@ -24,18 +24,68 @@ class InferEngine:
         # load checkpoint
         full_checkpoint = torch.load(resume_path, map_location="cpu", weights_only=True)
         if meta_cfg is None:
-            meta_cfg = ConfigDictWrapper(full_checkpoint["meta_cfg"])
+            meta_cfg = self._extract_meta_cfg(full_checkpoint)
+            if meta_cfg is None:
+                raise KeyError(
+                    "Cannot find model config in checkpoint. "
+                    "Please pass `meta_cfg` to InferEngine or save `meta_cfg` in checkpoint."
+                )
         self.meta_cfg = meta_cfg
 
         # build model
         model = build_model(meta_cfg.MODEL, init_submodule=False).to(device)
-        missing, unexpected = model.load_state_dict(full_checkpoint["model"], strict=False)
-        assert len(unexpected) == 0, f"Unexpected keys: {unexpected}"
+        model_state = self._extract_model_state(full_checkpoint)
+        missing, unexpected = model.load_state_dict(model_state, strict=False)
+        if len(unexpected) > 0:
+            print(f"Unexpected keys: {unexpected}")
         if len(missing) > 0:
             missing = list(set([m.split(".")[0] for m in missing]))
             print(f"Missing keys: {missing}")
         model.eval()
         self.model = model
+
+    @staticmethod
+    def _extract_meta_cfg(full_checkpoint):
+        if not isinstance(full_checkpoint, dict):
+            return None
+        for key in ("meta_cfg", "config", "cfg"):
+            if key in full_checkpoint and isinstance(full_checkpoint[key], dict):
+                return ConfigDictWrapper(full_checkpoint[key])
+        # some pipelines keep config under hyper_parameters
+        hparams = full_checkpoint.get("hyper_parameters", {})
+        if isinstance(hparams, dict):
+            for key in ("meta_cfg", "config", "cfg"):
+                if key in hparams and isinstance(hparams[key], dict):
+                    return ConfigDictWrapper(hparams[key])
+        return None
+
+    @staticmethod
+    def _extract_model_state(full_checkpoint):
+        if not isinstance(full_checkpoint, dict):
+            raise TypeError("Checkpoint must be a dict-like object.")
+
+        state = None
+        for key in ("model", "state_dict", "model_state_dict", "net"):
+            if key in full_checkpoint and isinstance(full_checkpoint[key], dict):
+                state = full_checkpoint[key]
+                break
+        if state is None and all(isinstance(v, torch.Tensor) for v in full_checkpoint.values()):
+            state = full_checkpoint
+        if state is None:
+            raise KeyError(
+                "Cannot find model weights in checkpoint. Expected keys: model/state_dict/model_state_dict/net."
+            )
+
+        # Try to normalize common training wrappers: module.*, model.*, net.*
+        strip_prefixes = ("module.", "model.", "net.")
+        normalized_state = {}
+        for key, value in state.items():
+            new_key = key
+            for prefix in strip_prefixes:
+                if new_key.startswith(prefix):
+                    new_key = new_key[len(prefix) :]
+            normalized_state[new_key] = value
+        return normalized_state
 
     def _init_face_decoder(self):
         # build face decoder
@@ -122,8 +172,22 @@ class InferEngine:
             self._init_face_decoder()
         gt_motion_code = batch_data["motion_code"]
         pred_motion_code = infer_results["pred_motion_code"]
+        assert gt_motion_code.shape[0] == 1 and gt_motion_code.shape[1] == 2, "gt_motion_code [1, 2, len, 108]"
+        assert pred_motion_code.shape[0] == 1, "pred_motion_code [1, len, 108]"
+        gt_motion_code = gt_motion_code[:, 0]
         # val_metrics
         gt_verts = self.face_decoder.get_flame_verts(gt_motion_code, with_headpose=False)
         pred_verts = self.face_decoder.get_flame_verts(pred_motion_code, with_headpose=False)
-        lve, avd, fdd = calc_val_metrics(pred_verts, gt_verts)
-        return {"LVE": lve, "AVD": avd, "FDD": fdd}
+        lve, mhd, fdd = calc_val_metrics(pred_verts, gt_verts)
+        _, gt_gpose_code, gt_jaw_code, _ = gt_motion_code.split([100, 3, 1, 4], dim=-1)
+        _, pred_gpose_code, pred_jaw_code, _ = pred_motion_code.split([100, 3, 1, 4], dim=-1)
+        pdd = self._calc_code_dispersion_delta(pred_gpose_code, gt_gpose_code)
+        jdd = self._calc_code_dispersion_delta(pred_jaw_code, gt_jaw_code)
+        return {"LVE": lve, "MHD": mhd, "FDD": fdd, "PDD": pdd, "JDD": jdd}
+
+    @staticmethod
+    def _calc_code_dispersion_delta(pred_code, gt_code):
+        # Use the same formula as FDD, applied on selected motion-code channels.
+        std_pred = pred_code.std(dim=1)
+        std_gt = gt_code.std(dim=1)
+        return (std_pred - std_gt).abs().mean().detach() * 100

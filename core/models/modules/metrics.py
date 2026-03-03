@@ -21,14 +21,14 @@ def calc_val_metrics(pred_verts, gt_verts):
     lve = torch.max(mse_dist, dim=-1)[0].mean().sqrt().detach()
     # meter to millimeter
     mse_dist_all = torch.nn.functional.mse_loss(pred_verts * 1000, gt_verts * 1000, reduction="none").sum(dim=-1)
-    avd = mse_dist_all.mean().sqrt().detach()
+    mhd = mse_dist_all.mean().sqrt().detach()
     # meter to millimeter
     pred_upper = pred_verts[:, :, upper_indices] * 1000
     gt_upper = gt_verts[:, :, upper_indices] * 1000
     std_pred_upper = pred_upper.sum(dim=-1).std(dim=1)
     std_gt_upper = gt_upper.sum(dim=-1).std(dim=1)
     fdd = (std_pred_upper - std_gt_upper).abs().mean().detach() * 100
-    return lve, avd, fdd
+    return lve, mhd, fdd
 
 
 # ldd

@@ -151,14 +151,20 @@ class UniLSGen(nn.Module):
         }
 
     @torch.inference_mode()
-    def inference(self, audio, style_motion_code, tau=1.0, cfg=2.0, **kwargs):
+    def inference(self, audio, style_motion_code=None, prev_motion_code=None, tau=1.0, cfg=2.0, **kwargs):
         batch_size = audio.shape[0]
-        assert batch_size == 1, "Only support batch size 1 for inference."
-        assert style_motion_code is not None, "Motion style is required for inference."
-        style_motion_code = style_motion_code.unbind(dim=1)[0]
-        # print("Inference with tau {} and cfg {}".format(tau, cfg))
-        # prepare audio and other inputs
         patch_len = max(self.patch_nums)
+        assert batch_size == 1, "Only support batch size 1 for inference."
+        if style_motion_code is not None:
+            style_motion_code = style_motion_code.unbind(dim=1)[0]
+        else:
+            style_motion_code = audio.new_zeros(batch_size, patch_len, self.motion_dim)
+            # prev_motion_code[..., 100:103] *= 0.1
+        if prev_motion_code is None:
+            prev_motion_code = audio.new_zeros(batch_size, patch_len, self.motion_dim)
+        # print("Inference with tau {} and cfg {}".format(tau, cfg))
+
+        # prepare audio and other inputs
         audio_frame_len = self._sample_rate / self._motion_fps
         frame_length = math.ceil(audio.shape[-1] / audio_frame_len)
         frame_chunk_length = math.ceil(frame_length / patch_len) * patch_len
@@ -179,7 +185,7 @@ class UniLSGen(nn.Module):
         audio_uncond = audio_feats_0[0].new_zeros(audio_feats_0[0].shape)
         style_uncond = style_motion_code.new_zeros(style_motion_code.shape)
         prev_uncond = audio.new_zeros(batch_size, patch_len, self.motion_dim)
-        prev_motion_code = torch.cat([prev_uncond, prev_uncond], dim=0)
+        prev_motion_code = torch.cat([prev_motion_code, prev_uncond], dim=0)
         audio_feats_0 = [torch.cat([ac, audio_uncond], dim=0) for ac in audio_feats_0]
         audio_feats_1 = [torch.cat([ac, audio_uncond], dim=0) for ac in audio_feats_1]
         style_motion_code = torch.cat([style_motion_code, style_uncond], dim=0)
