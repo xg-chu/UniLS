@@ -1,7 +1,7 @@
 PIPELINE: 'arlora_trainer.ARLoRATrainer'
 WANDB_ENTITY: 'xchu_ut'
-WANDB_PROJECT: 'UniLS_LoRALSGen'
-DUMP_DIR: '/checkpoint/avatar/xchu/UniLS'
+WANDB_PROJECT: 'UniLS'
+DUMP_DIR: './outputs'
 
 
 DATASET:
@@ -12,35 +12,35 @@ DATASET:
   STYLE_LENGTH: 100
   MOTION_FPS: 25
   AUDIO_SAMPLE_RATE: 16000
-  DATA_PATH: '/root/workspace/dataset/UniLSTalkDataset/SeamlessInteractionTalk/data_lmdb'
-  META_PATH: '/root/workspace/dataset/UniLSTalkDataset/SeamlessInteractionTalk/seamless_interaction_pairs.json'
+  DATA_PATH: '/home/mil/x-chu/workspace/Data_umiushi/UniLSTalkDataset/SeamlessInteractionTalk/data_lmdb'
+  META_PATH: '/home/mil/x-chu/workspace/Data_umiushi/UniLSTalkDataset/SeamlessInteractionTalk/seamless_interaction_pairs.json'
 
 
 MODEL:
   NAME: 'UniLSLoRAGen'
   LOADER: 'unils_gen.UniLSGen'
-  AUDIO_ENCODER: 'mimi'
-  T_DEPTH: 6
-  T_NUM_HEAD: 6
-  T_EMBED_DIM: 384
+  AUDIO_ENCODER: 'wav2vec'
+  T_DEPTH: 8
+  T_NUM_HEAD: 8
+  T_EMBED_DIM: 512
   
   FLIP_QUANT: 0.3
   PREV_FREE: 0.1
   AUDIO_FREE: 0.1
   STYLE_FREE: 0.1
 
-  PRETRAIN_PATH: '/checkpoint/avatar/xchu/UniLS/UniLSFreeGen_TalkMotionOnly/Mar02_0904_nraom/checkpoints/iter_100000.pt'
+  PRETRAIN_PATH: '/home/mil/x-chu/workspace/UniLS/outputs/UniLSFreeGen_TalkMotionOnly/Mar07_1228_bodmr/checkpoints/iter_50000.pt'
 
   VAE_CONFIG:
     LOADER: 'unils_codec.UniLSCodec'
     MOTION_DIM: 108 # 100 + 3 + 1 + 2 + 2
     V_CODE_DIM: 32
-    V_PATCH_NUMS: [1, 25, 50, 100]
-    T_DEPTH: 6
-    T_NUM_HEADS: 6
-    T_HIDDEN_DIM: 384
-    STATS_PATH: '/root/workspace/dataset/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
-    VAE_PATH: '/checkpoint/avatar/xchu/UniLS/UniLSCodec_TalkMotionOnly/Feb28_1943_hmyqw/checkpoints/iter_150000.pt'
+    V_PATCH_NUMS: [1, 10, 20, 50, 100]
+    T_DEPTH: 8
+    T_NUM_HEADS: 8
+    T_HIDDEN_DIM: 512
+    STATS_PATH: '/home/mil/x-chu/workspace/Data_umiushi/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
+    VAE_PATH: '/home/mil/x-chu/workspace/UniLS/outputs/UniLSCodec_TalkMotionOnly/Mar07_0027_qrmvb/checkpoints/iter_50000.pt'
     
 
 TRAINER:

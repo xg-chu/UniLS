@@ -52,12 +52,14 @@ class ARLoRATrainer(BaseTrainer):
         val_dataloader = torch.utils.data.DataLoader(
             val_dataset, batch_size=1, num_workers=0 if debug else 1, shuffle=False, drop_last=True
         )
-        test_dataloader = torch.utils.data.DataLoader(
-            test_dataset, batch_size=1, num_workers=0 if debug else 1, shuffle=False, drop_last=True
-        )
+        # test_dataloader = torch.utils.data.DataLoader(
+        #     test_dataset, batch_size=1, num_workers=0 if debug else 1, shuffle=False, drop_last=True
+        # )
 
         filtered_target_modules = select_target_modules(
-            model, include_keys=["to_qkv", "to_out", "ffn"], exclude_keys=["audio_encoder", "base_codec"]
+            model,
+            include_keys=["code_token_embed", "logits_head", "self_attn", "ffn"],
+            exclude_keys=["audio_encoder", "base_codec"],
         )
         # setup training materials
         lora_config = LoraConfig(
@@ -76,7 +78,7 @@ class ARLoRATrainer(BaseTrainer):
             if not param.requires_grad:
                 continue
             else:
-                # print(name)
+                # print("trainable: ", name)
                 normal_params.append(param)
         optimizer = torch.optim.AdamW(normal_params, lr=self._meta_cfg.TRAINER.LEARNING_RATE)
         warmup_scheduler = torch.optim.lr_scheduler.LinearLR(
@@ -93,16 +95,18 @@ class ARLoRATrainer(BaseTrainer):
             schedulers=[warmup_scheduler, main_scheduler],
             milestones=[self._meta_cfg.TRAINER.WARMUP_ITER],
         )
-        self.scheduler = scheduler
         op_params, all_params = calc_params(model)
-        self.model, self.optimizer, self.scheduler = self.accelerator.prepare(model, optimizer, scheduler)
+        self.model, self.optimizer = self.accelerator.prepare(model, optimizer)
+        self.scheduler = scheduler
         self.train_dataloader = self.accelerator.prepare(train_dataloader)
         self.val_dataloader = self.accelerator.prepare(val_dataloader)
-        self.test_dataloader = self.accelerator.prepare(test_dataloader)
+        # self.test_dataloader = self.accelerator.prepare(test_dataloader)
 
         if meta_cfg.TRAINER.USING_EMA:
             self.ema_model = EMA(
-                self.model, decay=meta_cfg.TRAINER.EMA_DECAY, update_freq=meta_cfg.TRAINER.EMA_UPDATE_FREQ
+                self.accelerator.unwrap_model(self.model),
+                decay=meta_cfg.TRAINER.EMA_DECAY,
+                update_freq=meta_cfg.TRAINER.EMA_UPDATE_FREQ,
             )
         # logger init only on main process
         if self.accelerator.is_main_process:
@@ -174,9 +178,7 @@ class ARLoRATrainer(BaseTrainer):
         if self._meta_cfg.TRAINER.USING_EMA:
             base_model = self.ema_model.get_model()
         else:
-            base_model = self.model
-        if hasattr(base_model, "module"):
-            base_model = base_model.module
+            base_model = self.accelerator.unwrap_model(self.model)
         base_model = deepcopy(base_model).to("cpu")
         base_model.eval()
         merged_model = base_model.merge_and_unload()

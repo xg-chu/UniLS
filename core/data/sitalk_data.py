@@ -125,8 +125,10 @@ class SeamlessInteractionTalkData(torch.utils.data.Dataset):
                 one_record["prev_motion_code"] = prev_motion.float()
             else:
                 curr_audio = audio_tensor[: int(seq_len * self._audio_frames_rate)]
+                speech_mask = torch.from_numpy(this_records["speech_mask"])
                 one_record["audio"] = curr_audio.float()
                 one_record["motion_code"] = motion_tensor.float()
+                one_record["speech_mask"] = speech_mask.float()
             double_records.append(one_record)
 
         si_record = {}

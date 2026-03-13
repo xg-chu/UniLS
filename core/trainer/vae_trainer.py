@@ -33,7 +33,7 @@ class VAETrainer(BaseTrainer):
         # val_metrics
         gt_verts = self.face_decoder.get_flame_verts(gt_motion_code, with_headpose=False)
         pred_verts = self.face_decoder.get_flame_verts(pred_motion_code, with_headpose=False)
-        lve, avd, fdd = calc_val_metrics(pred_verts, gt_verts)
+        lve, mhd, fdd = calc_val_metrics(pred_verts, gt_verts)
         if visualize is not None:
             iter_idx = visualize["iter_idx"]
             render_length = visualize["render_length"]
@@ -49,4 +49,4 @@ class VAETrainer(BaseTrainer):
             vis_path = os.path.join(self._dump_dir, "examples", f"{iter_idx}.mp4")
             write_video(vis_frames, vis_path, fps)
             self.wandb_logger.log_video(vis_path, "examples", step=iter_idx)
-        return {"LVE": lve, "AVD": avd, "FDD": fdd}
+        return {"LVE": lve, "MHD": mhd, "FDD": fdd}

@@ -48,16 +48,8 @@ class InferEngine:
     def _extract_meta_cfg(full_checkpoint):
         if not isinstance(full_checkpoint, dict):
             return None
-        for key in ("meta_cfg", "config", "cfg"):
-            if key in full_checkpoint and isinstance(full_checkpoint[key], dict):
-                return ConfigDictWrapper(full_checkpoint[key])
-        # some pipelines keep config under hyper_parameters
-        hparams = full_checkpoint.get("hyper_parameters", {})
-        if isinstance(hparams, dict):
-            for key in ("meta_cfg", "config", "cfg"):
-                if key in hparams and isinstance(hparams[key], dict):
-                    return ConfigDictWrapper(hparams[key])
-        return None
+        _meta_cfg = full_checkpoint.get("meta_cfg", None)
+        return ConfigDictWrapper(_meta_cfg)
 
     @staticmethod
     def _extract_model_state(full_checkpoint):
@@ -95,7 +87,7 @@ class InferEngine:
         self.face_renderer = RenderMesh(image_size=512, faces=self.face_decoder.get_faces())
 
     @torch.inference_mode()
-    def inference(self, batch_data, dump_path=None, clip_length=20, tau=0.01, cfg=1.0):
+    def inference(self, batch_data, dump_path=None, clip_length=20, tau=1.0, cfg=2.0):
         for key in batch_data:
             if isinstance(batch_data[key], torch.Tensor):
                 batch_data[key] = batch_data[key].to(self.device)
@@ -172,18 +164,50 @@ class InferEngine:
             self._init_face_decoder()
         gt_motion_code = batch_data["motion_code"]
         pred_motion_code = infer_results["pred_motion_code"]
+        speech_mask = batch_data["speech_mask"]
         assert gt_motion_code.shape[0] == 1 and gt_motion_code.shape[1] == 2, "gt_motion_code [1, 2, len, 108]"
         assert pred_motion_code.shape[0] == 1, "pred_motion_code [1, len, 108]"
+        assert speech_mask.shape[0] == 1, "speech_mask [1, 2, len]"
         gt_motion_code = gt_motion_code[:, 0]
-        # val_metrics
+        speaking_mask = speech_mask[0, 0].bool()  # [len]
+        listening_mask = ~speaking_mask
+
+        # generate flame verts once for full sequence
         gt_verts = self.face_decoder.get_flame_verts(gt_motion_code, with_headpose=False)
         pred_verts = self.face_decoder.get_flame_verts(pred_motion_code, with_headpose=False)
-        lve, mhd, fdd = calc_val_metrics(pred_verts, gt_verts)
         _, gt_gpose_code, gt_jaw_code, _ = gt_motion_code.split([100, 3, 1, 4], dim=-1)
         _, pred_gpose_code, pred_jaw_code, _ = pred_motion_code.split([100, 3, 1, 4], dim=-1)
-        pdd = self._calc_code_dispersion_delta(pred_gpose_code, gt_gpose_code)
-        jdd = self._calc_code_dispersion_delta(pred_jaw_code, gt_jaw_code)
-        return {"LVE": lve, "MHD": mhd, "FDD": fdd, "PDD": pdd, "JDD": jdd}
+
+        # always return all keys (NaN for invalid) to avoid gather deadlock in multi-GPU
+        _nan = torch.tensor(float("nan"), device=pred_motion_code.device)
+        metrics = {
+            "S_LVE": _nan,
+            "S_MHD": _nan,
+            "S_FDD": _nan,
+            "S_PDD": _nan,
+            "S_JDD": _nan,
+            "L_FDD": _nan,
+            "L_PDD": _nan,
+            "L_JDD": _nan,
+        }
+
+        # Speaking metrics: LVE, MHD, FDD, PDD, JDD (std needs >= 2 frames)
+        if speaking_mask.sum() > 1:
+            s_lve, s_mhd, s_fdd = calc_val_metrics(pred_verts[:, speaking_mask], gt_verts[:, speaking_mask])
+            s_pdd = self._calc_code_dispersion_delta(pred_gpose_code[:, speaking_mask], gt_gpose_code[:, speaking_mask])
+            s_jdd = self._calc_code_dispersion_delta(pred_jaw_code[:, speaking_mask], gt_jaw_code[:, speaking_mask])
+            metrics.update({"S_LVE": s_lve, "S_MHD": s_mhd, "S_FDD": s_fdd, "S_PDD": s_pdd, "S_JDD": s_jdd})
+
+        # Listening metrics: FDD, PDD, JDD only (std needs >= 2 frames)
+        if listening_mask.sum() > 1:
+            _, _, l_fdd = calc_val_metrics(pred_verts[:, listening_mask], gt_verts[:, listening_mask])
+            l_pdd = self._calc_code_dispersion_delta(
+                pred_gpose_code[:, listening_mask], gt_gpose_code[:, listening_mask]
+            )
+            l_jdd = self._calc_code_dispersion_delta(pred_jaw_code[:, listening_mask], gt_jaw_code[:, listening_mask])
+            metrics.update({"L_FDD": l_fdd, "L_PDD": l_pdd, "L_JDD": l_jdd})
+
+        return metrics
 
     @staticmethod
     def _calc_code_dispersion_delta(pred_code, gt_code):

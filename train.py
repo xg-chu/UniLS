@@ -8,6 +8,7 @@ import warnings
 import accelerate
 import ipdb
 import torch
+import transformers
 
 from core.data import build_dataset
 from core.libs.utils import ConfigDict
@@ -40,7 +41,7 @@ def train(config, base_model, debug=False, cli_args=[]):
     train_dataset = build_dataset(meta_cfg.DATASET, split="train", debug=debug)
     val_dataset = build_dataset(meta_cfg.DATASET, split="val", debug=debug)
     val_dataset.slice(32)
-    test_dataset = build_dataset(meta_cfg.DATASET, split="test", debug=debug)
+    # test_dataset = build_dataset(meta_cfg.DATASET, split="test", debug=debug)
 
     Trainer = build_trainer(meta_cfg)
     trainer = Trainer(
@@ -50,16 +51,18 @@ def train(config, base_model, debug=False, cli_args=[]):
         scheduler=scheduler,
         train_dataset=train_dataset,
         val_dataset=val_dataset,
-        test_dataset=test_dataset,
+        test_dataset=None,
         devices=devices,
         debug=debug,
     )
     trainer.run_fit()
+    trainer.cleanup()
 
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore", message=".*You are using the default legacy behaviour of the.*")
     warnings.filterwarnings("ignore", message=".*clean_up_tokenization_spaces.*")
+    warnings.filterwarnings("ignore", message=".*using the device under current context.*")
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", "-c", required=True, type=str)
     parser.add_argument("--basemodel", default=None, type=str)
@@ -68,4 +71,5 @@ if __name__ == "__main__":
     print("Command Line Args: {}".format(args))
 
     torch.set_float32_matmul_precision("high")
+    transformers.logging.set_verbosity_error()
     train(args.config, args.basemodel, args.debug, cli_args=unknown)

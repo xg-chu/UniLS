@@ -1,31 +1,35 @@
-PIPELINE: 'vae_trainer.VAETrainer'
+PIPELINE: 'ar_trainer.ARTrainer'
 WANDB_ENTITY: 'xchu_ut'
 WANDB_PROJECT: 'UniLS'
 DUMP_DIR: './outputs'
 
 
 DATASET:
-  NAME: 'TalkMotionOnly'
-  LOADER: 'motion_data.TalkMotionOnlyData'
+  NAME: 'SeamlessInteractionTalk'
+  LOADER: 'sitalk_data.SeamlessInteractionTalkData'
   CLIP_LENGTH: 100
   PREV_LENGTH: 100
   STYLE_LENGTH: 100
   MOTION_FPS: 25
   AUDIO_SAMPLE_RATE: 16000
-  DATA_PATH: '/home/mil/x-chu/workspace/Data_umiushi/UniLSTalkDataset/TalkMotionOnly/data_lmdb'
-  META_PATH: '/home/mil/x-chu/workspace/Data_umiushi/UniLSTalkDataset/TalkMotionOnly/talk_motion.json'
+  DATA_PATH: '/home/mil/x-chu/workspace/Data_umiushi/UniLSTalkDataset/SeamlessInteractionTalk/data_lmdb'
+  META_PATH: '/home/mil/x-chu/workspace/Data_umiushi/UniLSTalkDataset/SeamlessInteractionTalk/seamless_interaction_pairs.json'
 
 
 MODEL:
-  NAME: 'UniLSFreeGen'
-  LOADER: 'unils_freegen.UniLSFreeGen'
+  NAME: 'UniLSLoRAGen'
+  LOADER: 'unils_gen.UniLSGen'
+  AUDIO_ENCODER: 'wav2vec'
   T_DEPTH: 8
   T_NUM_HEAD: 8
   T_EMBED_DIM: 512
-
+  
   FLIP_QUANT: 0.3
   PREV_FREE: 0.1
+  AUDIO_FREE: 0.1
   STYLE_FREE: 0.1
+
+  PRETRAIN_PATH: null
 
   VAE_CONFIG:
     LOADER: 'unils_codec.UniLSCodec'
@@ -43,7 +47,7 @@ TRAINER:
   # TRAIN LOOP
   BATCH_SIZE: 128
   TRAIN_ITER: 200000
-  CHECK_INTERVAL: 50000
+  CHECK_INTERVAL: 20000
 
   # OPTIMIZER
   NAME: 'Adam'

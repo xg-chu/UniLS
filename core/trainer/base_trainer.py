@@ -47,19 +47,22 @@ class BaseTrainer:
         val_dataloader = torch.utils.data.DataLoader(
             val_dataset, batch_size=1, num_workers=0 if debug else 1, shuffle=False, drop_last=True
         )
-        test_dataloader = torch.utils.data.DataLoader(
-            test_dataset, batch_size=1, num_workers=0 if debug else 1, shuffle=False, drop_last=True
-        )
+        # test_dataloader = torch.utils.data.DataLoader(
+        #     test_dataset, batch_size=1, num_workers=0 if debug else 1, shuffle=False, drop_last=True
+        # )
 
         # setup training materials
-        self.model, self.optimizer, self.scheduler = self.accelerator.prepare(model, optimizer, scheduler)
+        self.model, self.optimizer = self.accelerator.prepare(model, optimizer)
+        self.scheduler = scheduler
         self.train_dataloader = self.accelerator.prepare(train_dataloader)
         self.val_dataloader = self.accelerator.prepare(val_dataloader)
-        self.test_dataloader = self.accelerator.prepare(test_dataloader)
+        # self.test_dataloader = self.accelerator.prepare(test_dataloader)
 
         if meta_cfg.TRAINER.USING_EMA:
             self.ema_model = EMA(
-                self.model, decay=meta_cfg.TRAINER.EMA_DECAY, update_freq=meta_cfg.TRAINER.EMA_UPDATE_FREQ
+                self.accelerator.unwrap_model(self.model),
+                decay=meta_cfg.TRAINER.EMA_DECAY,
+                update_freq=meta_cfg.TRAINER.EMA_UPDATE_FREQ,
             )
         # logger init only on main process
         if self.accelerator.is_main_process:
@@ -109,12 +112,12 @@ class BaseTrainer:
             loss = sum(loss_metrics.values())
 
             # backward pass
-            self.optimizer.zero_grad(set_to_none=True)
             self.accelerator.backward(loss)
             self.optimizer.step()
             self.scheduler.step()
+            self.optimizer.zero_grad(set_to_none=True)
             if self._meta_cfg.TRAINER.USING_EMA:
-                self.ema_model.update(self.model)
+                self.ema_model.update(self.accelerator.unwrap_model(self.model))
 
             # logging
             log_metrics = {k: v.item() for k, v in loss_metrics.items()}
@@ -128,9 +131,9 @@ class BaseTrainer:
                 self.run_validation(iter_idx, stage="val")
                 torch.cuda.empty_cache()
                 self.accelerator.wait_for_everyone()
-        self.run_validation(iter_idx, stage="test")
+        # self.run_validation(iter_idx, stage="test")
 
-    def __del__(self):
+    def cleanup(self):
         self.train_dataloader.dataset.close()
         self.val_dataloader.dataset.close()
 
@@ -141,16 +144,17 @@ class BaseTrainer:
             inf_model = self.ema_model.get_model()
             inf_model.eval()
         else:
-            inf_model = self.model
+            inf_model = self.accelerator.unwrap_model(self.model)
         val_metrics = []
-        data_loader = self.val_dataloader if stage == "val" else self.test_dataloader
+        # data_loader = self.val_dataloader if stage == "val" else self.test_dataloader
+        data_loader = self.val_dataloader
         val_bar = run_bar(data_loader, disable=not self.accelerator.is_main_process, debug=self._debug, leave=False)
         for idx, batch_data in enumerate(val_bar):
             if self.accelerator.is_main_process and stage == "val" and idx == 0:
                 visualize = {"iter_idx": iter_idx, "render_length": 500}
             else:
                 visualize = None
-            infer_results = self.accelerator.unwrap_model(inf_model).inference(**batch_data)
+            infer_results = inf_model.inference(**batch_data)
             one_val_metrics = self._calc_metrics(infer_results, visualize=visualize)
             one_val_metrics = self.accelerator.gather_for_metrics(one_val_metrics)
             one_val_metrics = {k: v.mean().item() for k, v in one_val_metrics.items()}
@@ -172,9 +176,7 @@ class BaseTrainer:
         if self._meta_cfg.TRAINER.USING_EMA:
             base_model = self.ema_model.get_model()
         else:
-            base_model = self.model
-        if hasattr(base_model, "module"):
-            base_model = base_model.module
+            base_model = self.accelerator.unwrap_model(self.model)
         state = {"model": base_model.state_dict(), "meta_cfg": self._meta_cfg._dump}
         torch.save(state, os.path.join(saving_path, name))
 

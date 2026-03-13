@@ -138,18 +138,6 @@ class WandbLogger:
         self.wandb_logger.finish()
 
 
-class TBLogger:
-    def __init__(self, tb_path, debug=False):
-        self.debug = debug
-        if not debug:
-            self.tb_logger = SummaryWriter(tb_path)
-
-    def add_scalar(self, scalar_key, scalar_value, step):
-        if self.debug:
-            return
-        self.tb_logger.add_scalar(scalar_key, scalar_value, step)
-
-
 class FileLogger:
     def __init__(self, file_path):
         self.file_path = file_path

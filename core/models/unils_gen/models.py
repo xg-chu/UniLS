@@ -152,6 +152,7 @@ class UniLSGen(nn.Module):
 
     @torch.inference_mode()
     def inference(self, audio, style_motion_code=None, prev_motion_code=None, tau=1.0, cfg=2.0, **kwargs):
+        # print("Inference with tau {} and cfg {}".format(tau, cfg))
         batch_size = audio.shape[0]
         patch_len = max(self.patch_nums)
         assert batch_size == 1, "Only support batch size 1 for inference."

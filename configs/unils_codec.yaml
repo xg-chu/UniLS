@@ -1,7 +1,7 @@
 PIPELINE: 'vae_trainer.VAETrainer'
 WANDB_ENTITY: 'xchu_ut'
-WANDB_PROJECT: 'UniLS_Codec'
-DUMP_DIR: '/checkpoint/avatar/xchu/UniLS'
+WANDB_PROJECT: 'UniLS'
+DUMP_DIR: './outputs'
 
 
 DATASET:
@@ -12,8 +12,8 @@ DATASET:
   STYLE_LENGTH: 100
   MOTION_FPS: 25
   AUDIO_SAMPLE_RATE: 16000
-  DATA_PATH: '/root/workspace/dataset/UniLSTalkDataset/TalkMotionOnly/data_lmdb'
-  META_PATH: '/root/workspace/dataset/UniLSTalkDataset/TalkMotionOnly/talk_motion.json'
+  DATA_PATH: '/home/mil/x-chu/workspace/Data_umiushi/UniLSTalkDataset/TalkMotionOnly/data_lmdb'
+  META_PATH: '/home/mil/x-chu/workspace/Data_umiushi/UniLSTalkDataset/TalkMotionOnly/talk_motion.json'
 
 
 MODEL:
@@ -21,24 +21,24 @@ MODEL:
   LOADER: 'unils_codec.UniLSCodec'
   MOTION_DIM: 108 # 100 + 3 + 1 + 2 + 2
   V_CODE_DIM: 32
-  V_PATCH_NUMS: [1, 25, 50, 100]
-  T_DEPTH: 6
-  T_NUM_HEADS: 6
-  T_HIDDEN_DIM: 384
-  STATS_PATH: '/root/workspace/dataset/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
+  V_PATCH_NUMS: [1, 10, 20, 50, 100]
+  T_DEPTH: 8
+  T_NUM_HEADS: 8
+  T_HIDDEN_DIM: 512
+  STATS_PATH: '/home/mil/x-chu/workspace/Data_umiushi/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
 
 
 TRAINER:
   # TRAIN LOOP
   BATCH_SIZE: 64
-  TRAIN_ITER: 300000
+  TRAIN_ITER: 200000
   CHECK_INTERVAL: 50000
 
   # OPTIMIZER
   NAME: 'Adam'
   WARMUP_ITER: 1000
   LR_DECAY_RATE: 0.1
-  LR_DECAY_ITER: 300000
+  LR_DECAY_ITER: 200000
   LEARNING_RATE: 1.0e-4
 
   # EMA

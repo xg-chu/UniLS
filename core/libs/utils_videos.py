@@ -1,7 +1,6 @@
 import av
-import torch
-import torchaudio
 import numpy as np
+import torch
 
 
 def write_video(video_frames, output_path, fps, audio_samples=None, sample_rate=None, acodec="aac"):
@@ -105,37 +104,30 @@ def read_all_video_frames(video_path):
     return frames, float(video_stream.average_rate)
 
 
-def read_audio_samples(video_path, stero=False):
-    audio_data, sample_rate = torchaudio.load(video_path)
-    if not stero:
-        audio_data = audio_data.mean(axis=0)[None]
-    return audio_data, sample_rate
-    # container = av.open(video_path)
-    # audio_stream = next((s for s in container.streams if s.type == "audio"), None)
-    # if audio_stream is None:
-    #     print("No audio stream found in the file.")
-    #     return None, None
-    # audio_samples = []
-    # for frame in container.decode(audio=0):  # Decode all audio frames
-    #     audio_array = frame.to_ndarray()
-    #     reshaped_array = audio_array.reshape(frame.samples, len(frame.layout.channels))
-    #     reshaped_array = reshaped_array.T
-    #     audio_samples.append(reshaped_array)  # Convert to NumPy array
-    # # Concatenate all audio frames into a single array
-    # audio_data = np.concatenate(audio_samples, axis=-1)
-    # if audio_data.dtype == np.int16:
-    #     audio_data = audio_data.astype(np.float32) / 32768.0  # for PCM (WAV)
-    # elif audio_data.dtype == np.int32:
-    #     audio_data = audio_data.astype(np.float32) / (2**31)  # for FLAC
-    # if not stero:
-    #     audio_data = audio_data.mean(axis=0)
-    # if audio_data.max() > 1.0 or audio_data.min() < -1.0:
-    #     print(
-    #         "Warning: Audio samples are not normalized, max={}, min={}.".format(
-    #             audio_data.max(), audio_data.min()
-    #         )
-    #     )
-    # return torch.tensor(audio_data)[None], audio_stream.rate
+def read_audio(audio_path, target_sr=96000):
+    container = av.open(audio_path)
+    audio_stream = container.streams.get(audio=0)
+    if not audio_stream:
+        container.close()
+        return None, None
+    audio_stream = audio_stream[0]
+    # resampler = av.AudioResampler(format="fltp", layout=audio_stream.layout.name, rate=target_sr)
+    resampler = av.AudioResampler(format="fltp", layout="mono", rate=target_sr)
+    audio_data = []
+    for frame in container.decode(audio_stream):
+        resampled_frames = resampler.resample(frame)
+        for r_frame in resampled_frames:
+            audio_data.append(r_frame.to_ndarray())
+    resampled_frames = resampler.resample(None)
+    for r_frame in resampled_frames:
+        audio_data.append(r_frame.to_ndarray())
+    container.close()
+    if not audio_data:
+        return torch.tensor([]), target_sr
+    full_audio_array = torch.tensor(np.concatenate(audio_data, axis=1))
+    assert full_audio_array.dim() == 2, f"Invalid audio array shape: {full_audio_array.shape}."
+    assert full_audio_array.shape[0] == 1, f"Invalid audio array shape: {full_audio_array.shape}."
+    return full_audio_array[0], target_sr
 
 
 if __name__ == "__main__":
@@ -145,9 +137,6 @@ if __name__ == "__main__":
     video_path = "../MultiTalk_dataset/multitalk_dataset/english/-OknSRRyFJE_0.mp4"
     vres, fps = read_all_video_frames(video_path)
     print(vres.shape, fps)
-
-    ares, sample_rate = read_audio_samples(video_path)
-    print(ares.shape, sample_rate)
 
     video_length = get_video_info(video_path)["video"]["num_frames"]
     print(get_video_info(video_path))
