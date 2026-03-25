@@ -16,7 +16,7 @@ from core.trainer.inferencer import InferEngine
 
 
 @torch.inference_mode()
-def eval(resume_path, dataset):
+def eval(resume_path, dataset, tau=1.0, cfg=2.0):
     # build config
     accelerator = accelerate.Accelerator()
     accelerate.utils.set_seed(42)
@@ -24,6 +24,7 @@ def eval(resume_path, dataset):
     infer_engine = InferEngine(resume_path, device=accelerator.device)
     if accelerator.is_main_process:
         print(f"Evaluation start, loading model from {resume_path}")
+        print(f"Inference params: tau={tau}, cfg={cfg}")
 
     # dataset inference
     data_split = dataset if dataset in {"train", "val", "test"} else "test"
@@ -35,7 +36,7 @@ def eval(resume_path, dataset):
     eval_metrics = []
     tqdm_bar = run_bar(test_dataloader, disable=not accelerator.is_main_process)
     for batch_data in tqdm_bar:
-        infer_results = infer_engine.inference(batch_data)
+        infer_results = infer_engine.inference(batch_data, tau=tau, cfg=cfg)
         metrics = infer_engine._calc_metrics(infer_results, batch_data)
         metrics = accelerator.gather_for_metrics(metrics)
         metrics = {k: v.nanmean().item() for k, v in metrics.items()}
@@ -45,7 +46,7 @@ def eval(resume_path, dataset):
 
     if accelerator.is_main_process:
         mean_metrics = {k: np.nanmean([r[k] for r in eval_metrics]) for k in eval_metrics[0]}
-        print(", ".join([f"{k}={v:.4f}" for k, v in mean_metrics.items()]))
+        print(f"[tau={tau}, cfg={cfg}] " + ", ".join([f"{k}={v:.4f}" for k, v in mean_metrics.items()]))
         print("Evaluation done.")
 
     accelerator.wait_for_everyone()
@@ -59,9 +60,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--resume_path", "-r", type=str)
     parser.add_argument("--dataset", default=None, type=str)
+    parser.add_argument("--tau", default=1.0, type=float)
+    parser.add_argument("--cfg", default=2.0, type=float)
     args = parser.parse_args()
     print("Command Line Args: {}".format(args))
 
     torch.set_float32_matmul_precision("high")
     transformers.logging.set_verbosity_error()
-    eval(args.resume_path, args.dataset)
+    eval(args.resume_path, args.dataset, tau=args.tau, cfg=args.cfg)

@@ -113,6 +113,7 @@ class BaseTrainer:
 
             # backward pass
             self.accelerator.backward(loss)
+            self.accelerator.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             self.optimizer.step()
             self.scheduler.step()
             self.optimizer.zero_grad(set_to_none=True)

@@ -94,6 +94,8 @@ class SeamlessInteractionTalkData(torch.utils.data.Dataset):
             )
             assert audio_tensor.dim() == 1, "Audio tensor should be 1D"
             assert motion_tensor.dim() == 2, "Motion tensor should be 2D"
+            # zero-center gpose per sample
+            motion_tensor[:, 100:103] = motion_tensor[:, 100:103] - motion_tensor[:, 100:103].mean(dim=0, keepdim=True)
             # style motion
             if self._fixed_style:
                 style_frame = min(seq_len // 2, seq_len - self._style_length)

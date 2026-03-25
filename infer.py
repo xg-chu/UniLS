@@ -5,7 +5,6 @@ import argparse
 import os
 import warnings
 
-import lightning
 import torch
 from tqdm import tqdm
 
@@ -15,8 +14,7 @@ from core.trainer.inferencer import InferEngine
 
 
 @torch.inference_mode()
-def infer(resume_path, dump_dir, dataset, clip_length=20, tau=0.01, cfg=1.0):
-    lightning.fabric.seed_everything(42)
+def infer(resume_path, dump_dir, dataset, clip_length=20, tau=0.01, cfg=1.0, num_samples=32):
     infer_engine = InferEngine(resume_path)
     print(f"Inference start, loading model from {resume_path}")
 
@@ -31,7 +29,7 @@ def infer(resume_path, dump_dir, dataset, clip_length=20, tau=0.01, cfg=1.0):
     # build dataset
     data_split = dataset if dataset in {"train", "val", "test"} else "test"
     test_dataset = build_dataset(data_cfg=infer_engine.meta_cfg.DATASET, split=data_split)
-    test_dataset.slice(32, shuffle=True)
+    test_dataset.slice(num_samples, shuffle=True)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, num_workers=0, shuffle=False)
 
     fps = int(infer_engine.meta_cfg.DATASET.MOTION_FPS)
@@ -114,10 +112,11 @@ if __name__ == "__main__":
     parser.add_argument("--dump_dir", "-d", type=str, default="./render_results")
     parser.add_argument("--dataset", default=None, type=str)
     parser.add_argument("--clip_length", default=20, type=int)
+    parser.add_argument("--num_samples", "-n", default=32, type=int)
     parser.add_argument("--tau", default=1.0, type=float)
     parser.add_argument("--cfg", default=1.5, type=float)
     args = parser.parse_args()
     print("Command Line Args: {}".format(args))
 
     torch.set_float32_matmul_precision("high")
-    infer(args.resume_path, args.dump_dir, args.dataset, args.clip_length, args.tau, args.cfg)
+    infer(args.resume_path, args.dump_dir, args.dataset, args.clip_length, args.tau, args.cfg, args.num_samples)

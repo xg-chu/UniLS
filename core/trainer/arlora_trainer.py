@@ -4,7 +4,6 @@
 import os
 from copy import deepcopy
 
-import ipdb
 import torch
 from accelerate import Accelerator
 from peft import LoraConfig, get_peft_model
@@ -58,12 +57,12 @@ class ARLoRATrainer(BaseTrainer):
 
         filtered_target_modules = select_target_modules(
             model,
-            include_keys=["code_token_embed", "logits_head", "self_attn", "ffn"],
+            include_keys=["sos_embed", "code_token_embed", "logits_head", "self_attn", "ffn"],
             exclude_keys=["audio_encoder", "base_codec"],
         )
         # setup training materials
         lora_config = LoraConfig(
-            r=8,  # Rank of the LoRA layers
+            r=32,  # Rank of the LoRA layers
             lora_alpha=32,  # Scaling factor for the LoRA layers
             target_modules=filtered_target_modules,  # Target modules to apply LoRA
             lora_dropout=0.1,  # Dropout for the LoRA layers
@@ -150,7 +149,7 @@ class ARLoRATrainer(BaseTrainer):
         # val_metrics
         gt_verts = self.face_decoder.get_flame_verts(gt_motion_code, with_headpose=False)
         pred_verts = self.face_decoder.get_flame_verts(pred_motion_code, with_headpose=False)
-        lve, avd, fdd = calc_val_metrics(pred_verts, gt_verts)
+        lve, mhd, fdd = calc_val_metrics(pred_verts, gt_verts)
         if visualize is not None:
             iter_idx = visualize["iter_idx"]
             render_length = visualize["render_length"]
@@ -169,7 +168,7 @@ class ARLoRATrainer(BaseTrainer):
             vis_audios = curr_audio[0, : int(render_length * sample_rate / fps)]
             write_video(vis_frames, vis_path, fps, vis_audios, sample_rate, "aac")
             self.wandb_logger.log_video(vis_path, "examples", step=iter_idx)
-        return {"LVE": lve, "AVD": avd, "FDD": fdd}
+        return {"LVE": lve, "MHD": mhd, "FDD": fdd}
 
     def _save_checkpoint(self, name="latest.pt"):
         if not self.accelerator.is_main_process or self._debug:

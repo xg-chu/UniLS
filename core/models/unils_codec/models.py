@@ -113,15 +113,8 @@ class UniLSCodec(nn.Module):
         gt_verts = self.face_decoder.get_flame_verts(gt_motion_code, with_headpose=False)
         pred_verts = self.face_decoder.get_flame_verts(pred_motion_code, with_headpose=False)
         mesh_loss, lips_loss = calc_mesh_loss(pred_verts, gt_verts)
-        # mesh vel&smooth loss
-        gt_mesh_vel = gt_verts[:, 1:] - gt_verts[:, :-1]
-        pred_mesh_vel = pred_verts[:, 1:] - pred_verts[:, :-1]
-        mesh_vel_loss = torch.nn.functional.mse_loss(pred_mesh_vel, gt_mesh_vel)
-        mesh_smooth_loss = torch.nn.functional.mse_loss(pred_mesh_vel[:, 1:], pred_mesh_vel[:, :-1])
         loss["mesh_loss"] = mesh_loss * _loss_kwargs.MESH_WEIGHT
         loss["lips_loss"] = lips_loss * _loss_kwargs.LIPS_WEIGHT
-        loss["mesh_vel_loss"] = mesh_vel_loss * _loss_kwargs.MESH_VEL_WEIGHT
-        loss["mesh_smooth_loss"] = mesh_smooth_loss * _loss_kwargs.MESH_SMOOTH_WEIGHT
         # print({k: "{:.4f}".format(v.item()) for k, v in loss.items()})
         return loss
 

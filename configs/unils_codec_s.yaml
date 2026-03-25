@@ -17,14 +17,14 @@ DATASET:
 
 
 MODEL:
-  NAME: 'UniLSCodec'
+  NAME: 'UniLSCodecS'
   LOADER: 'unils_codec.UniLSCodec'
   MOTION_DIM: 108 # 100 + 3 + 1 + 2 + 2
   V_CODE_DIM: 32
-  V_PATCH_NUMS: [1, 10, 20, 50, 100]
-  T_DEPTH: 8
-  T_NUM_HEADS: 8
-  T_HIDDEN_DIM: 512
+  V_PATCH_NUMS: [1, 25, 50, 100]
+  T_DEPTH: 6
+  T_NUM_HEADS: 6
+  T_HIDDEN_DIM: 384
   STATS_PATH: '/root/datasets/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
 
 

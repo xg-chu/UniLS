@@ -17,28 +17,39 @@ DATASET:
 
 
 MODEL:
-  NAME: 'UniLSCodec'
-  LOADER: 'unils_codec.UniLSCodec'
-  MOTION_DIM: 108 # 100 + 3 + 1 + 2 + 2
-  V_CODE_DIM: 32
-  V_PATCH_NUMS: [1, 10, 20, 50, 100]
-  T_DEPTH: 8
-  T_NUM_HEADS: 8
-  T_HIDDEN_DIM: 512
-  STATS_PATH: '/root/datasets/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
+  NAME: 'UniLSFreeGenS'
+  LOADER: 'unils_freegen.UniLSFreeGen'
+  T_DEPTH: 6
+  T_NUM_HEAD: 6
+  T_EMBED_DIM: 384
 
+  FLIP_QUANT: 0.3
+  PREV_FREE: 0.1
+  STYLE_FREE: 0.1
+
+  VAE_CONFIG:
+    LOADER: 'unils_codec.UniLSCodec'
+    MOTION_DIM: 108 # 100 + 3 + 1 + 2 + 2
+    V_CODE_DIM: 32
+    V_PATCH_NUMS: [1, 25, 50, 100]
+    T_DEPTH: 6
+    T_NUM_HEADS: 6
+    T_HIDDEN_DIM: 384
+    STATS_PATH: '/root/datasets/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
+    VAE_PATH: './outputs/UniLSCodecS_TalkMotionOnly/Mar16_2323_rflkx/checkpoints/iter_50000.pt'
+    
 
 TRAINER:
   # TRAIN LOOP
-  BATCH_SIZE: 64
-  TRAIN_ITER: 200000
+  BATCH_SIZE: 128
+  TRAIN_ITER: 600000
   CHECK_INTERVAL: 50000
 
   # OPTIMIZER
   NAME: 'Adam'
   WARMUP_ITER: 1000
   LR_DECAY_RATE: 0.1
-  LR_DECAY_ITER: 200000
+  LR_DECAY_ITER: 600000
   LEARNING_RATE: 1.0e-4
 
   # EMA
@@ -48,11 +59,4 @@ TRAINER:
 
 
 LOSS_KWARGS:
-  # GEO_LOSS: True
-  VQ_WEIGHT: 1.0
-  EXP_WEIGHT: 1.0
-  POSE_WEIGHT: 8.0
-  HEAD_VEL_WEIGHT: 5.0
-  HEAD_SMOOTH_WEIGHT: 0.5
-  MESH_WEIGHT: 2.0
-  LIPS_WEIGHT: 0.1
+  CE_WEIGHT: 1.0
