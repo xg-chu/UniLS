@@ -23,6 +23,10 @@
     <sup>&dagger;</sup>Corresponding author
 </h5>
 
+<h3 align="center">
+🤩 CVPR 2026 🤩
+</h3>
+
 <div align="center">
     <b>
         UniLS generates diverse and natural listening and speaking motions from audio.
