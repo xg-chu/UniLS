@@ -12,8 +12,8 @@ DATASET:
   STYLE_LENGTH: 100
   MOTION_FPS: 25
   AUDIO_SAMPLE_RATE: 16000
-  DATA_PATH: '/root/datasets/UniLSTalkDataset/SeamlessInteractionTalk/data_lmdb'
-  META_PATH: '/root/datasets/UniLSTalkDataset/SeamlessInteractionTalk/seamless_interaction_pairs.json'
+  DATA_PATH: '/your_dataset_path/UniLSTalkDataset/SeamlessInteractionTalk/data_lmdb'
+  META_PATH: '/your_dataset_path/UniLSTalkDataset/SeamlessInteractionTalk/seamless_interaction_pairs.json'
 
 
 MODEL:
@@ -29,18 +29,18 @@ MODEL:
   AUDIO_FREE: 0.1
   STYLE_FREE: 0.1
 
-  PRETRAIN_PATH: './outputs/UniLSFreeGen_TalkMotionOnly/Mar22_0344_mdbwl/checkpoints/iter_150000.pt'
+  PRETRAIN_PATH: './your_model_path/iter_150000.pt'
 
   VAE_CONFIG:
     LOADER: 'unils_codec.UniLSCodec'
     MOTION_DIM: 108 # 100 + 3 + 1 + 2 + 2
     V_CODE_DIM: 32
-    V_PATCH_NUMS: [1, 10, 20, 50, 100]
+    V_PATCH_NUMS: [1, 5, 25, 50, 100]
     T_DEPTH: 8
     T_NUM_HEADS: 8
     T_HIDDEN_DIM: 512
-    STATS_PATH: '/root/datasets/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
-    VAE_PATH: './outputs/UniLSCodec_TalkMotionOnly/Mar16_2323_dxeoz/checkpoints/iter_50000.pt'
+    STATS_PATH: '/your_dataset_path/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
+    VAE_PATH: './your_model_path/iter_50000.pt'
 
 
 TRAINER:

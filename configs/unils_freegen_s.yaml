@@ -12,8 +12,8 @@ DATASET:
   STYLE_LENGTH: 100
   MOTION_FPS: 25
   AUDIO_SAMPLE_RATE: 16000
-  DATA_PATH: '/root/datasets/UniLSTalkDataset/TalkMotionOnly/data_lmdb'
-  META_PATH: '/root/datasets/UniLSTalkDataset/TalkMotionOnly/talk_motion.json'
+  DATA_PATH: '/your_dataset_path/UniLSTalkDataset/TalkMotionOnly/data_lmdb'
+  META_PATH: '/your_dataset_path/UniLSTalkDataset/TalkMotionOnly/talk_motion.json'
 
 
 MODEL:
@@ -35,8 +35,8 @@ MODEL:
     T_DEPTH: 6
     T_NUM_HEADS: 6
     T_HIDDEN_DIM: 384
-    STATS_PATH: '/root/datasets/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
-    VAE_PATH: './outputs/UniLSCodecS_TalkMotionOnly/Mar16_2323_rflkx/checkpoints/iter_50000.pt'
+    STATS_PATH: '/your_dataset_path/UniLSTalkDataset/TalkMotionOnly/talk_motion_stats.json'
+    VAE_PATH: './your_model_path/iter_50000.pt'
     
 
 TRAINER:
