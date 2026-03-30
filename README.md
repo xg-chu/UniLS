@@ -76,19 +76,42 @@ python train.py -c unils_loragen
 ## Evaluation
 Run evaluation with multi-GPU support via Accelerate:
 ```
-accelerate launch eval.py -r /path/to/checkpoint --tau 1.0 --cfg 2.0
+accelerate launch eval.py -r /path/to/checkpoint --tau 1.0 --cfg 1.5
+```
+You can also pass an external dataset config to override the checkpoint's dataset:
+```
+accelerate launch eval.py -r /path/to/checkpoint --dataset configs/dataset.yaml
 ```
 
 ## Inference
-UniLS can be used via command line:
+
+### From Dataset
+Generate visualizations from the dataset:
 ```
-python infer.py -r /path/to/checkpoint --clip_length 20 --tau 1.0 --cfg 1.5 --num_samples 32
+python infer_dataset.py -r /path/to/checkpoint --clip_length 20 --tau 1.0 --cfg 1.5 --num_samples 32
 ```
 - `--resume_path, -r`: Path to the trained model checkpoint.
+- `--dataset`: Path to a dataset YAML config (optional, uses checkpoint config by default).
 - `--clip_length`: Duration of the generated clip in seconds (default: 20).
 - `--tau`: Temperature for sampling (default: 1.0).
 - `--cfg`: Classifier-free guidance scale (default: 1.5).
 - `--num_samples, -n`: Number of samples to generate (default: 32).
+- `--dump_dir, -d`: Output directory (default: `./render_results`).
+
+### From Audio Files
+Generate visualizations directly from audio files, supporting one or two speakers:
+```
+# Single speaker
+python infer_audio.py -r /path/to/checkpoint -a speaker0.wav
+
+# Two speakers (dyadic conversation)
+python infer_audio.py -r /path/to/checkpoint -a speaker0.wav --audio2 speaker1.wav
+```
+- `--resume_path, -r`: Path to the trained model checkpoint.
+- `--audio, -a`: Path to speaker 0 audio file.
+- `--audio2`: Path to speaker 1 audio file (optional; if omitted, only speaker 0 motion is generated).
+- `--tau`: Temperature for sampling (default: 1.0).
+- `--cfg`: Classifier-free guidance scale (default: 1.5).
 - `--dump_dir, -d`: Output directory (default: `./render_results`).
 
 
