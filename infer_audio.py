@@ -42,9 +42,7 @@ def infer_audio(resume_path, audio_path, audio_path_2=None, dump_dir="./render_r
     prev_motion_code = torch.zeros(1, patch_len, motion_dim, device=device)
 
     # infer speaker 0
-    results_spk0 = infer_engine.model.inference(
-        audio=paired_audio, prev_motion_code=prev_motion_code, tau=tau, cfg=cfg
-    )
+    results_spk0 = infer_engine.model.inference(audio=paired_audio, prev_motion_code=prev_motion_code, tau=tau, cfg=cfg)
     pred_code_0 = infer_engine.smooth_motion_savgol(results_spk0["pred_motion_code"][0])
 
     if two_speaker:

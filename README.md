@@ -9,11 +9,11 @@
 
 <h5 align="center">
     <a href="https://xg-chu.site">Xuangeng Chu</a><sup>*1</sup>&emsp;
-    <a href="">Ruicong Liu</a><sup>*1&dagger;</sup>&emsp;
-    <a href="">Yifei Huang</a><sup>1</sup>&emsp;
-    <a href="">Yun Liu</a><sup>2</sup>&emsp;
-    <a href="">Yichen Peng</a><sup>3</sup>&emsp;
-    <a href="">Bo Zheng</a><sup>2</sup>
+    <a href="https://ruicongliu.github.io">Ruicong Liu</a><sup>*1&dagger;</sup>&emsp;
+    <a href="https://hyf015.github.io">Yifei Huang</a><sup>1</sup>&emsp;
+    <a href="https://scholar.google.com/citations?user=5mbpi0kAAAAJ&hl=zh-TW">Yun Liu</a><sup>2</sup>&emsp;
+    <a href="https://puckikk1202.github.io">Yichen Peng</a><sup>3</sup>&emsp;
+    <a href="http://www.bozheng-lab.com">Bo Zheng</a><sup>2</sup>
     <br>
     <sup>1</sup>Shanda AI Research Tokyo, The University of Tokyo,
     <sup>2</sup>Shanda AI Research Tokyo,
@@ -46,6 +46,9 @@ Or install manually:
 pip install torch torchvision torchaudio
 pip install accelerate transformers peft einops omegaconf lmdb tqdm scipy wandb
 ```
+
+### Pretrained Models
+Download the pretrained models from [HuggingFace](https://huggingface.co/xg-chu/UniLS).
 
 ### Data
 Download the dataset from [UniLS-Talk Dataset](https://huggingface.co/datasets/xg-chu/UniLSTalkDataset).
@@ -123,11 +126,20 @@ Some part of our work is built based on FLAME. We also thank the following proje
 
 ## Citation
 If you find our work useful in your research, please consider citing:
-```bibtex
-@inproceedings{chu2025unils,
+<!-- @inproceedings{chu2025unils,
     title     = {UniLS: End-to-End Audio-Driven Avatars for Unified Listening and Speaking},
     author    = {Chu, Xuangeng and Liu, Ruicong and Huang, Yifei and Liu, Yun and Peng, Yichen and Zheng, Bo},
     booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
     year      = {2026}
+} -->
+```bibtex
+@misc{chu2025unils,
+      title={UniLS: End-to-End Audio-Driven Avatars for Unified Listening and Speaking}, 
+      author={Xuangeng Chu and Ruicong Liu and Yifei Huang and Yun Liu and Yichen Peng and Bo Zheng},
+      year={2025},
+      eprint={2512.09327},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2512.09327}, 
 }
 ```
