@@ -8,6 +8,7 @@ import accelerate
 import numpy as np
 import torch
 import transformers
+from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from core.data import build_dataset
@@ -16,7 +17,7 @@ from core.trainer.inferencer import InferEngine
 
 
 @torch.inference_mode()
-def eval(resume_path, dataset, tau=1.0, cfg=2.0):
+def eval(resume_path, dataset=None, tau=1.0, cfg=1.5):
     # build config
     accelerator = accelerate.Accelerator()
     accelerate.utils.set_seed(42)
@@ -26,9 +27,15 @@ def eval(resume_path, dataset, tau=1.0, cfg=2.0):
         print(f"Evaluation start, loading model from {resume_path}")
         print(f"Inference params: tau={tau}, cfg={cfg}")
 
-    # dataset inference
-    data_split = dataset if dataset in {"train", "val", "test"} else "test"
-    test_dataset = build_dataset(data_cfg=infer_engine.meta_cfg.DATASET, split=data_split)
+    # dataset config: use external yaml if provided, otherwise use checkpoint config
+    if dataset is not None:
+        dataset_cfg = OmegaConf.load(dataset).DATASET
+        if accelerator.is_main_process:
+            print(f"Using external dataset config: {dataset}")
+    else:
+        dataset_cfg = infer_engine.meta_cfg.DATASET
+
+    test_dataset = build_dataset(data_cfg=dataset_cfg, split="test")
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, num_workers=0, shuffle=False)
     test_dataloader = accelerator.prepare(test_dataloader)
 
@@ -61,7 +68,7 @@ if __name__ == "__main__":
     parser.add_argument("--resume_path", "-r", type=str)
     parser.add_argument("--dataset", default=None, type=str)
     parser.add_argument("--tau", default=1.0, type=float)
-    parser.add_argument("--cfg", default=2.0, type=float)
+    parser.add_argument("--cfg", default=1.5, type=float)
     args = parser.parse_args()
     print("Command Line Args: {}".format(args))
 

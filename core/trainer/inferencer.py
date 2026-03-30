@@ -49,6 +49,8 @@ class InferEngine:
         if not isinstance(full_checkpoint, dict):
             return None
         _meta_cfg = full_checkpoint.get("meta_cfg", None)
+        _meta_cfg["MODEL"]["PRETRAIN_PATH"] = None
+        _meta_cfg["MODEL"]["VAE_CONFIG"]["STATS_PATH"] = "./assets/talk_motion_stats.json"
         return ConfigDictWrapper(_meta_cfg)
 
     @staticmethod

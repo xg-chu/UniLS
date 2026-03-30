@@ -6,6 +6,7 @@ import os
 import warnings
 
 import torch
+from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from core.data import build_dataset
@@ -14,7 +15,7 @@ from core.trainer.inferencer import InferEngine
 
 
 @torch.inference_mode()
-def infer(resume_path, dump_dir, dataset, clip_length=20, tau=0.01, cfg=1.0, num_samples=32):
+def infer(resume_path, dump_dir, dataset, clip_length=20, tau=1.0, cfg=1.5, num_samples=32):
     infer_engine = InferEngine(resume_path)
     print(f"Inference start, loading model from {resume_path}")
 
@@ -27,13 +28,17 @@ def infer(resume_path, dump_dir, dataset, clip_length=20, tau=0.01, cfg=1.0, num
     os.makedirs(output_dir, exist_ok=True)
 
     # build dataset
-    data_split = dataset if dataset in {"train", "val", "test"} else "test"
-    test_dataset = build_dataset(data_cfg=infer_engine.meta_cfg.DATASET, split=data_split)
+    if dataset is not None:
+        dataset_cfg = OmegaConf.load(dataset).DATASET
+        print(f"Using external dataset config: {dataset}")
+    else:
+        dataset_cfg = infer_engine.meta_cfg.DATASET
+    test_dataset = build_dataset(data_cfg=dataset_cfg, split="test")
     test_dataset.slice(num_samples, shuffle=True)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, num_workers=0, shuffle=False)
 
-    fps = int(infer_engine.meta_cfg.DATASET.MOTION_FPS)
-    sample_rate = int(infer_engine.meta_cfg.DATASET.AUDIO_SAMPLE_RATE)
+    fps = int(dataset_cfg.MOTION_FPS)
+    sample_rate = int(dataset_cfg.AUDIO_SAMPLE_RATE)
     frame_length = int(clip_length * fps)
     audio_length = int(clip_length * sample_rate)
 
