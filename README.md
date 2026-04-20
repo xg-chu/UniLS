@@ -52,7 +52,9 @@ pip install accelerate transformers peft einops omegaconf lmdb tqdm scipy wandb
 ```
 
 ### Pretrained Models
-Download the pretrained models from [HuggingFace](https://huggingface.co/xg-chu/UniLS).
+Download the pretrained UniLS models from [HuggingFace](https://huggingface.co/xg-chu/UniLS).
+
+For FLAME support, download the official FLAME 2020 model from [FLAME official website](https://flame.is.tue.mpg.de/index.html), then convert it by running `python tools/convert_flame.py`. This will generate a `flame_2020.pt` file, which can be loaded without chumpy.
 
 ### Data
 Download the dataset from [UniLS-Talk Dataset](https://huggingface.co/datasets/xg-chu/UniLSTalkDataset).
